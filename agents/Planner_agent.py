@@ -15,10 +15,9 @@ class CoordinatorAgent:
     """
 
     def __init__(self, db_path="memory.db"):
-        # Initialize local database
+        
         self.db = LocalDB(db_path)
 
-        # Initialize agents
         self.web_agent = WebScraper_agent()
         self.inhouse_agent = InHouseSearch_agent()
         self.summarizer = SummarizerAgent()
@@ -29,14 +28,11 @@ class CoordinatorAgent:
         Process a full query-response.
         """
 
-        # Save user raw query
         self.db.save_user_query(user_query)
 
-        # INTENT ANALYSIS
         intent_result = self.intent_agent.analyze(user_query)
         task_type = intent_result.get("task_type")
 
-        # ROUTE TASK
         if task_type == "web_search":
             agent_output = self.web_agent.run(user_query)
 
