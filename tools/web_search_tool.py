@@ -1,4 +1,4 @@
-# tools/web_search_tool.py
+
 
 """
 REAL Web Search Tool using Wikipedia API.
@@ -40,9 +40,6 @@ class WebSearchTool:
 
         return self._fallback_search(query)
 
-    # ---------------------------------------
-    # REAL WEB SEARCH (WIKIPEDIA)
-    # ---------------------------------------
     def _wikipedia_search(self, query: str, limit: int = 3) -> List[Dict[str, str]]:
         url = "https://en.wikipedia.org/w/api.php"
         params = {
@@ -77,9 +74,7 @@ class WebSearchTool:
 
         return results
 
-    # ---------------------------------------
-    # FALLBACK SEARCH
-    # ---------------------------------------
+    
     def _fallback_search(self, query: str) -> List[Dict[str, str]]:
         q = query.lower()
         for key, entry in self._fallback_db.items():
@@ -91,8 +86,6 @@ class WebSearchTool:
             "snippet": "Water pollution affects ecosystems and human health.",
             "url": "https://example.com/water"
         }]
-
-# tools/web_search_tool.py
 
 """
 REAL Web Search Tool using Wikipedia API.
@@ -134,9 +127,6 @@ class WebSearchTool:
 
         return self._fallback_search(query)
 
-    # ---------------------------------------
-    # REAL WEB SEARCH (WIKIPEDIA)
-    # ---------------------------------------
     def _wikipedia_search(self, query: str, limit: int = 3) -> List[Dict[str, str]]:
         url = "https://en.wikipedia.org/w/api.php"
         params = {
@@ -166,9 +156,6 @@ class WebSearchTool:
 
         return results
 
-    # ---------------------------------------
-    # FALLBACK SEARCH
-    # ---------------------------------------
     def _fallback_search(self, query: str):
         q = query.lower()
         for key, entry in self._fallback_db.items():
