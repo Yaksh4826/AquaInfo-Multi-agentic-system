@@ -1,10 +1,10 @@
-# tools/web_search_tool.py
 
 """
 REAL Web Search Tool using SerpAPI (Google Search API).
 
-This tool uses SERPAPI_API_KEY from the .env file
-to perform real Google web searches and returns live results.
+This tool performs real Google web searches using SERPAPI_API_KEY
+from the .env file. It returns live results (title, snippet, url).
+No fake database, no fallback, no example.com.
 """
 
 from typing import List, Dict
@@ -16,8 +16,8 @@ from serpapi import GoogleSearch
 class WebSearchTool:
     def __init__(self) -> None:
         load_dotenv()
-
         api_key = os.getenv("SERPAPI_API_KEY")
+
         if not api_key:
             raise ValueError("ERROR: SERPAPI_API_KEY not found in .env file")
 
@@ -25,10 +25,10 @@ class WebSearchTool:
 
     def search(self, query: str, max_results: int = 3) -> List[Dict[str, str]]:
         """
-        Perform a REAL Google search using SerpAPI.
+        Perform a real Google search using SerpAPI.
         Returns list of results with title, snippet, url.
         """
-        print("DEBUG: WebSearchTool.search using SerpAPI")  # debug print
+        print("DEBUG: Using SerpAPI for REAL web search")
 
         params = {
             "engine": "google",
@@ -36,13 +36,13 @@ class WebSearchTool:
             "api_key": self.api_key,
             "num": max_results,
             "hl": "en",
-            "gl": "ca",  # region (Canada)
+            "gl": "ca"
         }
 
         search = GoogleSearch(params)
         response = search.get_dict()
-
         organic = response.get("organic_results", [])
+
         results: List[Dict[str, str]] = []
 
         for item in organic[:max_results]:
