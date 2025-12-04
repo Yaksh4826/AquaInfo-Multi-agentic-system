@@ -1,58 +1,55 @@
+# tools/web_search_tool.py
+
+"""
+REAL Web Search Tool using SerpAPI (Google Search API).
+
+This tool uses SERPAPI_API_KEY from the .env file
+to perform real Google web searches and returns live results.
+"""
+
 from typing import List, Dict
+import os
+from dotenv import load_dotenv
+from serpapi import GoogleSearch
 
 
 class WebSearchTool:
-
-
     def __init__(self) -> None:
-        
-        self._fake_web_db: Dict[str, Dict[str, str]] = {
-            "nitrate pollution": {
-                "title": "Understanding Nitrate Pollution in Water",
-                "snippet": (
-                    "Nitrate pollution occurs when excess nitrogen from fertilizers "
-                    "and wastewater enters rivers, lakes, or groundwater. It can "
-                    "cause algal blooms and reduce oxygen levels, harming fish."
-                ),
-                "url": "https://example.com/nitrate-pollution"
-            },
-            "water quality": {
-                "title": "Key Indicators of Water Quality",
-                "snippet": (
-                    "Water quality is described using indicators such as pH, "
-                    "turbidity, dissolved oxygen, temperature, and contaminants "
-                    "like nitrates or heavy metals."
-                ),
-                "url": "https://example.com/water-quality-indicators"
-            },
-            "irrigation water": {
-                "title": "Requirements for Good Irrigation Water",
-                "snippet": (
-                    "Good irrigation water typically has low salinity, low nitrate "
-                    "levels, and minimal heavy metals to avoid soil and crop damage."
-                ),
-                "url": "https://example.com/irrigation-water-standards"
-            },
+        load_dotenv()
+
+        api_key = os.getenv("SERPAPI_API_KEY")
+        if not api_key:
+            raise ValueError("ERROR: SERPAPI_API_KEY not found in .env file")
+
+        self.api_key = api_key
+
+    def search(self, query: str, max_results: int = 3) -> List[Dict[str, str]]:
+        """
+        Perform a REAL Google search using SerpAPI.
+        Returns list of results with title, snippet, url.
+        """
+        print("DEBUG: WebSearchTool.search using SerpAPI")  # debug print
+
+        params = {
+            "engine": "google",
+            "q": query,
+            "api_key": self.api_key,
+            "num": max_results,
+            "hl": "en",
+            "gl": "ca",  # region (Canada)
         }
 
-    def search(self, query: str) -> List[Dict[str, str]]:
-       
-        query_lower = query.lower()
+        search = GoogleSearch(params)
+        response = search.get_dict()
+
+        organic = response.get("organic_results", [])
         results: List[Dict[str, str]] = []
 
-        for key, value in self._fake_web_db.items():
-            if key in query_lower:
-                results.append(value)
-
-        if not results:
+        for item in organic[:max_results]:
             results.append({
-                "title": "General Information about Water Pollution",
-                "snippet": (
-                    "Water pollution impacts ecosystems, human health, and agriculture. "
-                    "Common pollutants include nutrients (like nitrates), industrial "
-                    "chemicals, and pathogens from wastewater."
-                ),
-                "url": "https://example.com/general-water-pollution"
+                "title": item.get("title", "No title"),
+                "snippet": item.get("snippet", "") or "",
+                "url": item.get("link", "") or "",
             })
 
         return results
