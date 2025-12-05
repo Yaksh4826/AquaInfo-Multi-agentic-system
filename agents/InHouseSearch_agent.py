@@ -11,19 +11,23 @@ import uuid
 load_dotenv()
 
 class IHouseRAGAgent:
-    def __init__(self, model_name="mistral-large-latest", top_k=5, pdf_directory="./data"):
+    def __init__(self, model_name="mistral-large-latest", top_k=5, pdf_directory=None, rebuild=False):
         """
         Fully self-contained RAG agent.
         Processes PDFs, generates embeddings, stores in vector store, retrieves, and answers.
         """
         self.top_k = top_k
-        self.pdf_directory = pdf_directory
+        project_root = Path(__file__).resolve().parent.parent
+        self.pdf_directory = Path(pdf_directory) if pdf_directory else project_root / "data"
+        self.persist_directory = project_root / "data" / "vector_store"
 
         # Load LLM
-        mistral_api_key = os.getenv("MISTRALAI_API_KEY")
+        mistral_api_key = os.getenv("MISTRALAI_API_KEY") or os.getenv("MISTRAL_API_KEY")
         if not mistral_api_key:
             raise ValueError("MISTRALAI_API_KEY not set in .env")
-        
+
+        os.environ.setdefault("MISTRAL_API_KEY", mistral_api_key)
+
         self.llm = ChatMistralAI(
             mistral_api_key=mistral_api_key,
             model_name=model_name,
@@ -33,7 +37,7 @@ class IHouseRAGAgent:
 
         # Initialize embedding manager and vector store
         self.embedder = EmbeddingManager()
-        self.vstore = VectorStore()
+        self.vstore = VectorStore(persist_directory=str(self.persist_directory))
         self.retriever = RAGRetriever(self.vstore, self.embedder)
 
         # System prompt for context-grounded answers
@@ -44,9 +48,12 @@ class IHouseRAGAgent:
             "If context lacks information, say so clearly."
         )
 
-        # Process PDFs and store embeddings if vector store is empty
-        if self.vstore.collection.count() == 0:
+        # Process PDFs and store embeddings if vector store is empty or rebuild requested
+        existing = self.vstore.collection.count()
+        if rebuild or existing == 0:
             self._process_pdfs_to_vectorstore()
+        else:
+            print(f"Vector store already populated with {existing} docs — skipping rebuild.")
 
     def _process_pdfs_to_vectorstore(self):
         """Load PDFs, split into chunks, generate embeddings, store in vector store"""
@@ -74,6 +81,11 @@ class IHouseRAGAgent:
         )
         chunks = text_splitter.split_documents(all_documents)
         print(f"Split {len(all_documents)} documents into {len(chunks)} chunks")
+
+        # If nothing to embed, skip adding to vector store to avoid empty errors
+        if not chunks:
+            print("No chunks generated from PDFs; skipping vector store population.")
+            return
 
         # Generate embeddings
         texts = [chunk.page_content for chunk in chunks]

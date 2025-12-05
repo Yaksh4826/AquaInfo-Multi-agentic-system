@@ -10,7 +10,12 @@ No fake database, no fallback, no example.com.
 from typing import List, Dict
 import os
 from dotenv import load_dotenv
-from serpapi import GoogleSearch
+
+try:
+    from serpapi import GoogleSearch
+except ImportError as exc:  # pragma: no cover - dependency hint
+    GoogleSearch = None
+    _serpapi_import_error = exc
 
 
 class WebSearchTool:
@@ -20,6 +25,12 @@ class WebSearchTool:
 
         if not api_key:
             raise ValueError("ERROR: SERPAPI_API_KEY not found in .env file")
+
+        if GoogleSearch is None:
+            raise ImportError(
+                "serpapi package is required. Install with `pip install serpapi`. "
+                f"Original error: {_serpapi_import_error}"
+            )
 
         self.api_key = api_key
 
