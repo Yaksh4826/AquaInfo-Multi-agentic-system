@@ -1,182 +1,55 @@
-# tools/web_search_tool.py
 
 """
-REAL Web Search Tool using Wikipedia API.
-Falls back to a mini local DB if network fails.
-"""
+REAL Web Search Tool using SerpAPI (Google Search API).
 
-from typing import List, Dict
-import requests
-import html
-
-
-class WebSearchTool:
-    def __init__(self):
-        self._fallback_db = {
-            "nitrate pollution": {
-                "title": "Understanding Nitrate Pollution",
-                "snippet": "Nitrate pollution harms water by causing algal blooms and reducing oxygen levels.",
-                "url": "https://example.com/nitrate"
-            },
-            "water quality": {
-                "title": "Water Quality Basics",
-                "snippet": "Water quality includes pH, turbidity, dissolved oxygen, and contaminants.",
-                "url": "https://example.com/water-quality"
-            }
-        }
-
-    def search(self, query: str, max_results: int = 3) -> List[Dict[str, str]]:
-        """
-        Main function:
-        1. Try REAL Wikipedia search
-        2. If it fails → fallback to mini DB
-        """
-        try:
-            real_results = self._wikipedia_search(query, max_results)
-            if real_results:
-                return real_results
-        except Exception:
-            pass
-
-        return self._fallback_search(query)
-
-    # ---------------------------------------
-    # REAL WEB SEARCH (WIKIPEDIA)
-    # ---------------------------------------
-    def _wikipedia_search(self, query: str, limit: int = 3) -> List[Dict[str, str]]:
-        url = "https://en.wikipedia.org/w/api.php"
-        params = {
-            "action": "query",
-            "list": "search",
-            "srsearch": query,
-            "format": "json",
-            "srlimit": limit
-        }
-
-        r = requests.get(url, params=params, timeout=10)
-        r.raise_for_status()
-        data = r.json()
-
-        results = []
-        for item in data.get("query", {}).get("search", []):
-            title = item.get("title", "")
-            snippet_raw = item.get("snippet", "")
-            snippet = html.unescape(snippet_raw.replace("<span class=\"searchmatch\">", "").replace("</span>", ""))
-            page_id = item.get("pageid")
-
-            if page_id is None:
-                url_out = "https://en.wikipedia.org/wiki/" + title.replace(" ", "_")
-            else:
-                url_out = f"https://en.wikipedia.org/?curid={page_id}"
-
-            results.append({
-                "title": title,
-                "snippet": snippet,
-                "url": url_out
-            })
-
-        return results
-
-    # ---------------------------------------
-    # FALLBACK SEARCH
-    # ---------------------------------------
-    def _fallback_search(self, query: str) -> List[Dict[str, str]]:
-        q = query.lower()
-        for key, entry in self._fallback_db.items():
-            if key in q:
-                return [entry]
-
-        return [{
-            "title": "General Water Pollution Info",
-            "snippet": "Water pollution affects ecosystems and human health.",
-            "url": "https://example.com/water"
-        }]
-
-# tools/web_search_tool.py
-
-"""
-REAL Web Search Tool using Wikipedia API.
-Falls back to a mini local DB if network fails.
+This tool performs real Google web searches using SERPAPI_API_KEY
+from the .env file. It returns live results (title, snippet, url).
+No fake database, no fallback, no example.com.
 """
 
 from typing import List, Dict
-import requests
-import html
+import os
+from dotenv import load_dotenv
+from serpapi import GoogleSearch
 
 
 class WebSearchTool:
-    def __init__(self):
-        self._fallback_db = {
-            "nitrate pollution": {
-                "title": "Understanding Nitrate Pollution",
-                "snippet": "Nitrate pollution harms water by causing algal blooms and reducing oxygen levels.",
-                "url": "https://example.com/nitrate"
-            },
-            "water quality": {
-                "title": "Water Quality Basics",
-                "snippet": "Water quality includes pH, turbidity, dissolved oxygen, and contaminants.",
-                "url": "https://example.com/water-quality"
-            }
-        }
+    def __init__(self) -> None:
+        load_dotenv()
+        api_key = os.getenv("SERPAPI_API_KEY")
+
+        if not api_key:
+            raise ValueError("ERROR: SERPAPI_API_KEY not found in .env file")
+
+        self.api_key = api_key
 
     def search(self, query: str, max_results: int = 3) -> List[Dict[str, str]]:
         """
-        Main function:
-        1. Try REAL Wikipedia search
-        2. If it fails → fallback to mini DB
+        Perform a real Google search using SerpAPI.
+        Returns list of results with title, snippet, url.
         """
-        try:
-            real_results = self._wikipedia_search(query, max_results)
-            if real_results:
-                return real_results
-        except Exception:
-            pass
+        print("DEBUG: Using SerpAPI for REAL web search")
 
-        return self._fallback_search(query)
-
-    # ---------------------------------------
-    # REAL WEB SEARCH (WIKIPEDIA)
-    # ---------------------------------------
-    def _wikipedia_search(self, query: str, limit: int = 3) -> List[Dict[str, str]]:
-        url = "https://en.wikipedia.org/w/api.php"
         params = {
-            "action": "query",
-            "list": "search",
-            "srsearch": query,
-            "format": "json",
-            "srlimit": limit
+            "engine": "google",
+            "q": query,
+            "api_key": self.api_key,
+            "num": max_results,
+            "hl": "en",
+            "gl": "ca"
         }
 
-        r = requests.get(url, params=params, timeout=10)
-        r.raise_for_status()
-        data = r.json()
+        search = GoogleSearch(params)
+        response = search.get_dict()
+        organic = response.get("organic_results", [])
 
-        results = []
-        for item in data["query"]["search"]:
-            title = item["title"]
-            snippet_raw = item["snippet"]
-            snippet = html.unescape(snippet_raw.replace("<span class=\"searchmatch\">", "").replace("</span>", ""))
-            page_id = item["pageid"]
+        results: List[Dict[str, str]] = []
 
+        for item in organic[:max_results]:
             results.append({
-                "title": title,
-                "snippet": snippet,
-                "url": f"https://en.wikipedia.org/?curid={page_id}"
+                "title": item.get("title", "No title"),
+                "snippet": item.get("snippet", "") or "",
+                "url": item.get("link", "") or "",
             })
 
         return results
-
-    # ---------------------------------------
-    # FALLBACK SEARCH
-    # ---------------------------------------
-    def _fallback_search(self, query: str):
-        q = query.lower()
-        for key, entry in self._fallback_db.items():
-            if key in q:
-                return [entry]
-
-        return [{
-            "title": "General Water Pollution Info",
-            "snippet": "Water pollution affects ecosystems and human health.",
-            "url": "https://example.com/water"
-        }]
